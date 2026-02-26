@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mini Hospital Dashboard</title>
+<style>
+body { font-family: Arial; margin: 20px; }
+h2 { margin-top: 20px; }
+input, select, button { margin: 5px; padding: 5px; }
+ul { list-style-type: none; padding: 0; }
+li { margin: 5px 0; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<h1>Mini Hospital Dashboard</h1>
+
+<h2>Tambah Antrian</h2>
+<form id="formAntrian">
+    <input type="text" id="namaPasien" placeholder="Nama Pasien" required>
+    <select id="poliSelect">
+        <option value="1">Umum</option>
+        <option value="2">Gigi</option>
+        <option value="3">Anak</option>
+    </select>
+    <button type="submit">Tambah</button>
+</form>
+
+<h2>Daftar Antrian</h2>
+<ul id="listAntrian"></ul>
+
+<script>
+const form = document.getElementById('formAntrian');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nama = document.getElementById('namaPasien').value;
+    const poliId = parseInt(document.getElementById('poliSelect').value);
+
+    const res = await fetch('http://localhost:8080/antrian', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nama_pasien: nama, poli_id: poliId })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+        alert(`No Antrian: ${data.no_antrian} | Pasien: ${data.nama_pasien}`);
+        fetchAntrian();
+        form.reset();
+    } else {
+        alert(`Error: ${data.error}`);
+    }
+});
+
+async function fetchAntrian() {
+    const res = await fetch('http://localhost:8080/antrian');
+    const data = await res.json();
+    const ul = document.getElementById('listAntrian');
+    ul.innerHTML = '';
+
+    data.antrian.forEach(a => {
+    const li = document.createElement('li');
+    li.textContent = `No ${a.no_antrian}: ${a.nama_pasien} | Poli: ${a.nama_poli} | Dokter: ${a.nama_dokter}`;
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Hapus';
+    btn.onclick = async () => {
+        const del = await fetch(`http://localhost:8080/antrian/${a.id}`, { method: 'DELETE' });
+        const resDel = await del.json();
+        alert(resDel.message);
+        fetchAntrian();
+    };
+
+    li.appendChild(btn);
+    ul.appendChild(li);
+});
+}
+
+fetchAntrian();
+setInterval(fetchAntrian, 5000);
+</script>
+
+</body>
+</html>

@@ -1,16 +1,23 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+    "backend/database"
+    "backend/routes"
+
+    "github.com/gin-gonic/gin"
+)
 
 func main() {
-    r := gin.Default() // bikin router Gin dengan logger & recovery
+    database.Connect()
+    r := gin.Default()
 
-    // Endpoint GET "/" → Hello World
+    // Serve frontend
+    r.Static("/static", "../frontend")
     r.GET("/", func(c *gin.Context) {
-        c.JSON(200, gin.H{
-            "message": "Hello Mini Hospital API!",
-        })
+        c.File("../frontend/index.html")
     })
 
-    r.Run() // jalankan server di localhost:8080
+    routes.Setup(r)
+
+    r.Run() // :8080
 }
