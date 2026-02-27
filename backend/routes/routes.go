@@ -1,12 +1,19 @@
 package routes
 
 import (
-    "backend/controllers"
-    "github.com/gin-gonic/gin"
+	"backend/internal/handler"
+
+	"github.com/gin-gonic/gin"
 )
 
-func Setup(r *gin.Engine) {
-    r.POST("/antrian", controllers.AddAntrian)
-    r.GET("/antrian", controllers.GetAntrian)
-    r.DELETE("/antrian/:id", controllers.DeleteAntrian)
+func Setup(r *gin.Engine,
+	antrianHandler *handler.AntrianHandler,
+	poliHandler *handler.PoliHandler,
+) {
+
+	r.GET("/antrian", antrianHandler.GetAll)
+	r.POST("/antrian", antrianHandler.Create)
+	r.DELETE("/antrian/:id", antrianHandler.Delete)
+
+	r.GET("/poli", poliHandler.GetAll)
 }

@@ -1,84 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Mini Hospital Dashboard</title>
-<style>
-body { font-family: Arial; margin: 20px; }
-h2 { margin-top: 20px; }
-input, select, button { margin: 5px; padding: 5px; }
-ul { list-style-type: none; padding: 0; }
-li { margin: 5px 0; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: space-between; }
-</style>
+    <meta charset="UTF-8">
+    <title>Manajemen Antrian</title>
 </head>
 <body>
 
-<h1>Mini Hospital Dashboard</h1>
-
 <h2>Tambah Antrian</h2>
-<form id="formAntrian">
-    <input type="text" id="namaPasien" placeholder="Nama Pasien" required>
-    <select id="poliSelect">
-        <option value="1">Umum</option>
-        <option value="2">Gigi</option>
-        <option value="3">Anak</option>
-    </select>
-    <button type="submit">Tambah</button>
-</form>
+
+<input type="text" id="nama" placeholder="Nama Pasien">
+
+<select id="poli_id">
+    <option value="">Pilih Poli</option>
+</select>
+
+<button onclick="tambahAntrian()">Tambah</button>
+
+<hr>
 
 <h2>Daftar Antrian</h2>
-<ul id="listAntrian"></ul>
+
+<table border="1" cellpadding="5">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nama Pasien</th>
+            <th>No Antrian</th>
+            <th>Poli</th>
+            <th>Dokter</th>
+            <th>Aksi</th>
+        </tr>
+    </thead>
+    <tbody id="tabel-antrian"></tbody>
+</table>
 
 <script>
-const form = document.getElementById('formAntrian');
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const nama = document.getElementById('namaPasien').value;
-    const poliId = parseInt(document.getElementById('poliSelect').value);
+async function loadPoli() {
+    const res = await fetch("/poli")
+    const data = await res.json()
 
-    const res = await fetch('http://localhost:8080/antrian', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nama_pasien: nama, poli_id: poliId })
-    });
+    const select = document.getElementById("poli_id")
+    select.innerHTML = '<option value="">Pilih Poli</option>'
 
-    const data = await res.json();
-    if (res.ok) {
-        alert(`No Antrian: ${data.no_antrian} | Pasien: ${data.nama_pasien}`);
-        fetchAntrian();
-        form.reset();
-    } else {
-        alert(`Error: ${data.error}`);
-    }
-});
-
-async function fetchAntrian() {
-    const res = await fetch('http://localhost:8080/antrian');
-    const data = await res.json();
-    const ul = document.getElementById('listAntrian');
-    ul.innerHTML = '';
-
-    data.antrian.forEach(a => {
-    const li = document.createElement('li');
-    li.textContent = `No ${a.no_antrian}: ${a.nama_pasien} | Poli: ${a.nama_poli} | Dokter: ${a.nama_dokter}`;
-
-    const btn = document.createElement('button');
-    btn.textContent = 'Hapus';
-    btn.onclick = async () => {
-        const del = await fetch(`http://localhost:8080/antrian/${a.id}`, { method: 'DELETE' });
-        const resDel = await del.json();
-        alert(resDel.message);
-        fetchAntrian();
-    };
-
-    li.appendChild(btn);
-    ul.appendChild(li);
-});
+    data.forEach(p => {
+        select.innerHTML += `
+            <option value="${p.id}">${p.nama}</option>
+        `
+    })
 }
 
-fetchAntrian();
-setInterval(fetchAntrian, 5000);
+async function loadAntrian() {
+    const res = await fetch("/antrian")
+    const data = await res.json()
+
+    const tbody = document.getElementById("tabel-antrian")
+    tbody.innerHTML = ""
+
+    data.forEach(item => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${item.id}</td>
+                <td>${item.nama_pasien}</td>
+                <td>${item.no_antrian}</td>
+                <td>${item.nama_poli}</td>
+                <td>${item.nama_dokter}</td>
+                <td>
+                    <button onclick="hapusAntrian(${item.id})">
+                        Hapus
+                    </button>
+                </td>
+            </tr>
+        `
+    })
+}
+
+async function tambahAntrian() {
+    const nama = document.getElementById("nama").value
+    const poli_id = document.getElementById("poli_id").value
+
+    if (!nama || !poli_id) {
+        alert("Isi semua field")
+        return
+    }
+
+    await fetch("/antrian", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            nama_pasien: nama,
+            poli_id: parseInt(poli_id)
+        })
+    })
+
+    document.getElementById("nama").value = ""
+    document.getElementById("poli_id").value = ""
+
+    loadAntrian()
+}
+
+async function hapusAntrian(id) {
+    await fetch("/antrian/" + id, {
+        method: "DELETE"
+    })
+
+    loadAntrian()
+}
+
+loadPoli()
+loadAntrian()
+
 </script>
 
 </body>
