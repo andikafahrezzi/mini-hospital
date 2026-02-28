@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"backend/internal/model"
 
 	"backend/internal/service"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,10 @@ type AntrianHandler struct {
 
 type PoliHandler struct {
 	service *service.PoliService
+}
+
+type DokterHandler struct {
+	service *service.DokterService
 }
 
 func NewAntrianHandler(s *service.AntrianService) *AntrianHandler {
@@ -30,23 +35,23 @@ func (h *AntrianHandler) GetAll(c *gin.Context) {
 }
 
 func (h *AntrianHandler) Create(c *gin.Context) {
-	var req struct {
-		NamaPasien string `json:"nama_pasien"`
-		PoliID     int    `json:"poli_id"`
-	}
+
+	var req model.CreateAntrianRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	data, err := h.service.Create(req.NamaPasien, req.PoliID)
+	err := h.service.Create(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, data)
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "antrian berhasil dibuat",
+	})
 }
 
 func (h *AntrianHandler) Delete(c *gin.Context) {
@@ -68,6 +73,22 @@ func NewPoliHandler(s *service.PoliService) *PoliHandler {
 
 func (h *PoliHandler) GetAll(c *gin.Context) {
 	data, err := h.service.GetAll()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, data)
+}
+
+func NewDokterHandler(s *service.DokterService) *DokterHandler {
+	return &DokterHandler{service: s}
+}
+
+func (h *DokterHandler) GetByPoli(c *gin.Context) {
+	poliID, _ := strconv.Atoi(c.Query("poli_id"))
+
+	data, err := h.service.GetByPoli(poliID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

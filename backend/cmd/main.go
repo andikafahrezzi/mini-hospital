@@ -33,11 +33,14 @@ func main() {
     poliRepo := repository.NewPoliRepository()
     poliService := service.NewPoliService(poliRepo)
     poliHandler := handler.NewPoliHandler(poliService)
+	dokterRepo := repository.NewDokterRepository()
+	dokterService := service.NewDokterService(dokterRepo)
+	dokterHandler := handler.NewDokterHandler(dokterService)
 	// =============================
 	// API Routes
 	// =============================
 	// API routes
-	routes.Setup(r, antrianHandler, poliHandler)
+	routes.Setup(r, antrianHandler, poliHandler, dokterHandler)
 
 	// =============================
 	// Serve Frontend

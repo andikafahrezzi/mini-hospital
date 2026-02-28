@@ -3,6 +3,7 @@ package service
 import (
 	"backend/internal/model"
 	"backend/internal/repository"
+	"errors"
 )
 
 type AntrianService struct {
@@ -13,6 +14,10 @@ type PoliService struct {
 	repo *repository.PoliRepository
 }
 
+type DokterService struct {
+	repo *repository.DokterRepository
+}
+
 func NewAntrianService(r *repository.AntrianRepository) *AntrianService {
 	return &AntrianService{repo: r}
 }
@@ -21,30 +26,25 @@ func (s *AntrianService) GetAll() ([]model.Antrian, error) {
 	return s.repo.GetAll()
 }
 
-func (s *AntrianService) Create(nama string, poliID int) (*model.Antrian, error) {
-	last, err := s.repo.GetLastQueue(poliID)
-	if err != nil {
-		return nil, err
-	}
+func (s *AntrianService) Create(req model.CreateAntrianRequest) error {
 
-	dokterID, err := s.repo.GetDoctorByPoli(poliID)
-	if err != nil {
-		return nil, err
-	}
+    // VALIDASI: dokter harus sesuai poli
+    valid, err := s.repo.IsDoctorBelongToPoli(req.DokterID, req.PoliID)
+    if err != nil {
+        return err
+    }
 
-	antrian := &model.Antrian{
-		NamaPasien: nama,
-		NoAntrian:  last + 1,
-		PoliID:     poliID,
-		DokterID:   dokterID,
-	}
+    if !valid {
+        return errors.New("dokter tidak sesuai dengan poli")
+    }
 
-	err = s.repo.Create(antrian)
-	if err != nil {
-		return nil, err
-	}
+    antrian := model.Antrian{
+        NamaPasien: req.NamaPasien,
+        PoliID:     req.PoliID,
+        DokterID:   req.DokterID, // ⬅ pakai dari frontend
+    }
 
-	return antrian, nil
+    return s.repo.Create(&antrian)
 }
 
 func (s *AntrianService) Delete(id int) error {
@@ -60,3 +60,12 @@ func NewPoliService(r *repository.PoliRepository) *PoliService {
 func (s *PoliService) GetAll() ([]model.Poli, error) {
 	return s.repo.GetAll()
 }
+
+func NewDokterService(r *repository.DokterRepository) *DokterService {
+	return &DokterService{repo: r}
+}
+
+func (s *DokterService) GetByPoli(poliID int) ([]model.Dokter, error) {
+	return s.repo.GetByPoli(poliID)
+}
+

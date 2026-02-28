@@ -7,6 +7,8 @@ import (
 
 type AntrianRepository struct{}
 type PoliRepository struct{}
+type DokterRepository struct{}
+
 
 func NewAntrianRepository() *AntrianRepository {
 	return &AntrianRepository{}
@@ -104,4 +106,45 @@ func (r *PoliRepository) GetAll() ([]model.Poli, error) {
 	}
 
 	return result, nil
+}
+
+func NewDokterRepository() *DokterRepository {
+	return &DokterRepository{}
+}
+
+func (r *DokterRepository) GetByPoli(poliID int) ([]model.Dokter, error) {
+	rows, err := database.DB.Query(
+		"SELECT id, nama FROM dokter WHERE poli_id = ?",
+		poliID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []model.Dokter
+
+	for rows.Next() {
+		var d model.Dokter
+		rows.Scan(&d.ID, &d.Nama)
+		result = append(result, d)
+	}
+
+	return result, nil
+}
+func (r *AntrianRepository) IsDoctorBelongToPoli(dokterID int, poliID int) (bool, error) {
+
+    var count int
+
+    err := database.DB.QueryRow(
+        "SELECT COUNT(*) FROM dokter WHERE id = ? AND poli_id = ?",
+        dokterID,
+        poliID,
+    ).Scan(&count)
+
+    if err != nil {
+        return false, err
+    }
+
+    return count > 0, nil
 }

@@ -13,9 +13,15 @@ type Antrian struct {
 type CreateAntrianRequest struct {
 	NamaPasien string `json:"nama_pasien"`
 	PoliID     int    `json:"poli_id"`
+	DokterID   int    `json:"dokter_id"`
 }
 
 type Poli struct {
+	ID   int    `json:"id"`
+	Nama string `json:"nama"`
+}
+
+type Dokter struct {
 	ID   int    `json:"id"`
 	Nama string `json:"nama"`
 }

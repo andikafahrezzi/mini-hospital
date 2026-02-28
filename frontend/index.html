@@ -10,8 +10,12 @@
 
 <input type="text" id="nama" placeholder="Nama Pasien">
 
-<select id="poli_id">
+<select id="poli_id" onchange="loadDokter()">
     <option value="">Pilih Poli</option>
+</select>
+
+<select id="dokter_id">
+    <option value="">Pilih Dokter</option>
 </select>
 
 <button onclick="tambahAntrian()">Tambah</button>
@@ -75,28 +79,43 @@ async function loadAntrian() {
     })
 }
 
+async function loadDokter() {
+    const poliID = document.getElementById("poli_id").value
+
+    const select = document.getElementById("dokter_id")
+    select.innerHTML = '<option value="">Pilih Dokter</option>'
+
+    if (!poliID) return
+
+    const res = await fetch("/dokter?poli_id=" + poliID)
+    const data = await res.json()
+
+    data.forEach(d => {
+        select.innerHTML += `
+            <option value="${d.id}">${d.nama}</option>
+        `
+    })
+}
+
 async function tambahAntrian() {
     const nama = document.getElementById("nama").value
     const poli_id = document.getElementById("poli_id").value
+    const dokter_id = document.getElementById("dokter_id").value
 
-    if (!nama || !poli_id) {
-        alert("Isi semua field")
+    if (!nama || !poli_id || !dokter_id) {
+        alert("Lengkapi semua field")
         return
     }
 
     await fetch("/antrian", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             nama_pasien: nama,
-            poli_id: parseInt(poli_id)
+            poli_id: parseInt(poli_id),
+            dokter_id: parseInt(dokter_id)
         })
     })
-
-    document.getElementById("nama").value = ""
-    document.getElementById("poli_id").value = ""
 
     loadAntrian()
 }
