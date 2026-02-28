@@ -10,7 +10,7 @@ func Setup(r *gin.Engine,
 	antrianHandler *handler.AntrianHandler,
 	poliHandler *handler.PoliHandler,
 	dokterHandler *handler.DokterHandler,
-	
+
 ) {
 
 	r.GET("/antrian", antrianHandler.GetAll)
@@ -19,4 +19,5 @@ func Setup(r *gin.Engine,
 
 	r.GET("/poli", poliHandler.GetAll)
 	r.GET("/dokter", dokterHandler.GetByPoli)
+	r.PUT("/antrian/:id/status", antrianHandler.UpdateStatus)
 }

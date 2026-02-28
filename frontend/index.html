@@ -1,137 +1,181 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Manajemen Antrian</title>
-</head>
-<body>
+  </head>
+  <body>
+    <h2>Tambah Antrian</h2>
 
-<h2>Tambah Antrian</h2>
+    <input type="text" id="nama" placeholder="Nama Pasien" />
 
-<input type="text" id="nama" placeholder="Nama Pasien">
+    <select id="poli_id" onchange="loadDokter()">
+      <option value="">Pilih Poli</option>
+    </select>
 
-<select id="poli_id" onchange="loadDokter()">
-    <option value="">Pilih Poli</option>
-</select>
+    <select id="dokter_id">
+      <option value="">Pilih Dokter</option>
+    </select>
 
-<select id="dokter_id">
-    <option value="">Pilih Dokter</option>
-</select>
+    <button onclick="tambahAntrian()">Tambah</button>
 
-<button onclick="tambahAntrian()">Tambah</button>
+    <hr />
 
-<hr>
+    <h2>Daftar Antrian</h2>
 
-<h2>Daftar Antrian</h2>
-
-<table border="1" cellpadding="5">
-    <thead>
+    <table border="1" cellpadding="5">
+      <thead>
         <tr>
-            <th>ID</th>
-            <th>Nama Pasien</th>
-            <th>No Antrian</th>
-            <th>Poli</th>
-            <th>Dokter</th>
-            <th>Aksi</th>
+          <th>ID</th>
+          <th>Nama Pasien</th>
+          <th>No Antrian</th>
+          <th>Poli</th>
+          <th>Dokter</th>
+          <th>Status</th>
+          <th>Aksi</th>
         </tr>
-    </thead>
-    <tbody id="tabel-antrian"></tbody>
-</table>
+      </thead>
+      <tbody id="tabel-antrian"></tbody>
+    </table>
 
 <script>
+  async function loadPoli() {
+    const res = await fetch("/poli");
+    const data = await res.json();
 
-async function loadPoli() {
-    const res = await fetch("/poli")
-    const data = await res.json()
+    const select = document.getElementById("poli_id");
+    select.innerHTML = '<option value="">Pilih Poli</option>';
 
-    const select = document.getElementById("poli_id")
-    select.innerHTML = '<option value="">Pilih Poli</option>'
+    data.forEach((p) => {
+      select.innerHTML += `
+        <option value="${p.id}">${p.nama}</option>
+      `;
+    });
+  }
 
-    data.forEach(p => {
-        select.innerHTML += `
-            <option value="${p.id}">${p.nama}</option>
-        `
-    })
-}
+  async function loadDokter() {
+    const poliID = document.getElementById("poli_id").value;
+    const select = document.getElementById("dokter_id");
 
-async function loadAntrian() {
-    const res = await fetch("/antrian")
-    const data = await res.json()
+    select.innerHTML = '<option value="">Pilih Dokter</option>';
 
-    const tbody = document.getElementById("tabel-antrian")
-    tbody.innerHTML = ""
+    if (!poliID) return;
 
-    data.forEach(item => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${item.id}</td>
-                <td>${item.nama_pasien}</td>
-                <td>${item.no_antrian}</td>
-                <td>${item.nama_poli}</td>
-                <td>${item.nama_dokter}</td>
-                <td>
-                    <button onclick="hapusAntrian(${item.id})">
-                        Hapus
-                    </button>
-                </td>
-            </tr>
-        `
-    })
-}
+    const res = await fetch("/dokter?poli_id=" + poliID);
+    const data = await res.json();
 
-async function loadDokter() {
-    const poliID = document.getElementById("poli_id").value
+    data.forEach((d) => {
+      select.innerHTML += `
+        <option value="${d.id}">${d.nama}</option>
+      `;
+    });
+  }
 
-    const select = document.getElementById("dokter_id")
-    select.innerHTML = '<option value="">Pilih Dokter</option>'
+  async function loadAntrian() {
+    const res = await fetch("/antrian");
+    const data = await res.json();
 
-    if (!poliID) return
+    const tbody = document.getElementById("tabel-antrian");
+    tbody.innerHTML = "";
 
-    const res = await fetch("/dokter?poli_id=" + poliID)
-    const data = await res.json()
+    data.forEach((item) => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.id}</td>
+          <td>${item.nama_pasien}</td>
+          <td>${item.no_antrian}</td>
+          <td>${item.nama_poli}</td>
+          <td>${item.nama_dokter}</td>
+          <td>${item.status}</td>
+          <td>${renderButtons(item)}</td>
+        </tr>
+      `;
+    });
+  }
 
-    data.forEach(d => {
-        select.innerHTML += `
-            <option value="${d.id}">${d.nama}</option>
-        `
-    })
-}
+  function renderButtons(item) {
+    let buttons = "";
 
-async function tambahAntrian() {
-    const nama = document.getElementById("nama").value
-    const poli_id = document.getElementById("poli_id").value
-    const dokter_id = document.getElementById("dokter_id").value
-
-    if (!nama || !poli_id || !dokter_id) {
-        alert("Lengkapi semua field")
-        return
+    if (item.status === "menunggu") {
+      buttons += `<button onclick="updateStatus(${item.id}, 'dipanggil')">Panggil</button> `;
+      buttons += `<button onclick="updateStatus(${item.id}, 'batal')">Batal</button> `;
     }
 
-    await fetch("/antrian", {
-        method: "POST",
+    if (item.status === "dipanggil") {
+      buttons += `<button onclick="updateStatus(${item.id}, 'selesai')">Selesai</button> `;
+      buttons += `<button onclick="updateStatus(${item.id}, 'no_show')">No Show</button> `;
+    }
+
+    // tombol hapus optional
+    buttons += `<button onclick="hapusAntrian(${item.id})">Hapus</button>`;
+
+    return buttons;
+  }
+
+  async function updateStatus(id, status) {
+    try {
+      const res = await fetch("/antrian/" + id + "/status", {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            nama_pasien: nama,
-            poli_id: parseInt(poli_id),
-            dokter_id: parseInt(dokter_id)
-        })
-    })
+        body: JSON.stringify({ status: status }),
+      });
 
-    loadAntrian()
-}
+      const result = await res.json();
 
-async function hapusAntrian(id) {
+      if (!res.ok) {
+        alert(result.error || "Gagal update status");
+        return;
+      }
+
+      loadAntrian();
+    } catch (err) {
+      alert("Terjadi kesalahan");
+    }
+  }
+
+  async function tambahAntrian() {
+    const nama = document.getElementById("nama").value;
+    const poli_id = document.getElementById("poli_id").value;
+    const dokter_id = document.getElementById("dokter_id").value;
+
+    if (!nama || !poli_id || !dokter_id) {
+      alert("Lengkapi semua field");
+      return;
+    }
+
+    const res = await fetch("/antrian", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nama_pasien: nama,
+        poli_id: parseInt(poli_id),
+        dokter_id: parseInt(dokter_id),
+      }),
+    });
+
+    if (!res.ok) {
+      const result = await res.json();
+      alert(result.error || "Gagal tambah antrian");
+      return;
+    }
+
+    document.getElementById("nama").value = "";
+    document.getElementById("dokter_id").innerHTML =
+      '<option value="">Pilih Dokter</option>';
+
+    loadAntrian();
+  }
+
+  async function hapusAntrian(id) {
     await fetch("/antrian/" + id, {
-        method: "DELETE"
-    })
+      method: "DELETE",
+    });
 
-    loadAntrian()
-}
+    loadAntrian();
+  }
 
-loadPoli()
-loadAntrian()
-
+  loadPoli();
+  loadAntrian();
 </script>
-
-</body>
+  </body>
 </html>

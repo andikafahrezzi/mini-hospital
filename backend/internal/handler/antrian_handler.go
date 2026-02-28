@@ -96,3 +96,31 @@ func (h *DokterHandler) GetByPoli(c *gin.Context) {
 
 	c.JSON(http.StatusOK, data)
 }
+
+func (h *AntrianHandler) UpdateStatus(c *gin.Context) {
+
+	idParam := c.Param("id")
+
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "id tidak valid"})
+		return
+	}
+
+	var body struct {
+		Status string `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.service.UpdateStatus(id, body.Status)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "status berhasil diperbarui"})
+}

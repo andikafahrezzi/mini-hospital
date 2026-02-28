@@ -17,7 +17,7 @@ func NewAntrianRepository() *AntrianRepository {
 func (r *AntrianRepository) GetAll() ([]model.Antrian, error) {
 	rows, err := database.DB.Query(`
 		SELECT a.id, a.nama_pasien, a.no_antrian,
-		       a.poli_id, a.dokter_id,
+		       a.poli_id, a.dokter_id, a.status,
 		       p.nama, d.nama
 		FROM antrian a
 		JOIN poli p ON a.poli_id = p.id
@@ -34,14 +34,15 @@ func (r *AntrianRepository) GetAll() ([]model.Antrian, error) {
 	for rows.Next() {
 		var a model.Antrian
 		err := rows.Scan(
-			&a.ID,
-			&a.NamaPasien,
-			&a.NoAntrian,
-			&a.PoliID,
-			&a.DokterID,
-			&a.NamaPoli,
-			&a.NamaDokter,
-		)
+					&a.ID,
+					&a.NamaPasien,
+					&a.NoAntrian,
+					&a.PoliID,
+					&a.DokterID,
+					&a.Status,
+					&a.NamaPoli,
+					&a.NamaDokter,
+				)
 		if err != nil {
 			return nil, err
 		}
@@ -147,4 +148,37 @@ func (r *AntrianRepository) IsDoctorBelongToPoli(dokterID int, poliID int) (bool
     }
 
     return count > 0, nil
+}
+
+func (r *AntrianRepository) GetByID(id int) (*model.Antrian, error) {
+	var a model.Antrian
+
+	err := database.DB.QueryRow(`
+		SELECT id, nama_pasien, poli_id, dokter_id, no_antrian, status
+		FROM antrian
+		WHERE id = ?
+	`, id).Scan(
+		&a.ID,
+		&a.NamaPasien,
+		&a.PoliID,
+		&a.DokterID,
+		&a.NoAntrian,
+		&a.Status,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &a, nil
+}
+
+func (r *AntrianRepository) UpdateStatus(id int, status string) error {
+	_, err := database.DB.Exec(`
+		UPDATE antrian
+		SET status = ?
+		WHERE id = ?
+	`, status, id)
+
+	return err
 }
