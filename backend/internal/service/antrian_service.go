@@ -27,24 +27,45 @@ func (s *AntrianService) GetAll() ([]model.Antrian, error) {
 }
 
 func (s *AntrianService) Create(req model.CreateAntrianRequest) error {
+	// 1️⃣ Ambil prefix dari poli
+	prefix, err := s.poliRepo.GetPrefixByID(req.PoliID)
+	if err != nil {
+		return err
+	}
 
-    // VALIDASI: dokter harus sesuai poli
-    valid, err := s.repo.IsDoctorBelongToPoli(req.DokterID, req.PoliID)
-    if err != nil {
-        return err
-    }
+	// 2️⃣ Ambil nomor terakhir hari ini
+	lastNo, err := s.repo.GetLastNoAntrian(req.PoliID)
+	if err != nil {
+		return err
+	}
 
-    if !valid {
-        return errors.New("dokter tidak sesuai dengan poli")
-    }
+	nextNumber := 1
 
-    antrian := model.Antrian{
-        NamaPasien: req.NamaPasien,
-        PoliID:     req.PoliID,
-        DokterID:   req.DokterID, // ⬅ pakai dari frontend
-    }
+	if lastNo != "" {
+		// format: PREFIX-001
+		parts := strings.Split(lastNo, "-")
+		if len(parts) == 2 {
+			num, err := strconv.Atoi(parts[1])
+			if err == nil {
+				nextNumber = num + 1
+			}
+		}
+	}
 
-    return s.repo.Create(&antrian)
+	// 3️⃣ Format nomor baru
+	noAntrian := fmt.Sprintf("%s-%03d", prefix, nextNumber)
+
+	// 4️⃣ Set data
+	antrian := model.Antrian{
+		NamaPasien: req.NamaPasien,
+		PoliID:     req.PoliID,
+		DokterID:   req.DokterID,
+		Status:     "menunggu",
+		NoAntrian:  noAntrian,
+		Tanggal:    time.Now(),
+	}
+
+	return s.repo.Create(antrian)
 }
 
 func (s *AntrianService) Delete(id int) error {

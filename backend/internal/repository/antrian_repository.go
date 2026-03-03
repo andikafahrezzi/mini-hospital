@@ -226,3 +226,23 @@ func (r *AntrianRepository) UpdateStatus(id int, status string) error {
 
 	return err
 }
+
+func (r *AntrianRepository) GetLastNoAntrian(poliID int) (string, error) {
+	var last sql.NullString
+
+	err := database.DB.QueryRow(`
+		SELECT MAX(no_antrian)
+		FROM antrian
+		WHERE poli_id = ? AND tanggal = CURDATE()
+	`, poliID).Scan(&last)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !last.Valid {
+		return "", nil
+	}
+
+	return last.String, nil
+}
