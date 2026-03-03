@@ -3,6 +3,8 @@ package repository
 import (
 	"backend/internal/model"
 	"backend/pkg/database"
+	"fmt"
+	"time"
 )
 
 type AntrianRepository struct{}
@@ -15,15 +17,16 @@ func NewAntrianRepository() *AntrianRepository {
 }
 
 func (r *AntrianRepository) GetAll() ([]model.Antrian, error) {
-	rows, err := database.DB.Query(`
-		SELECT a.id, a.nama_pasien, a.no_antrian,
-		       a.poli_id, a.dokter_id, a.status,
-		       p.nama, d.nama
-		FROM antrian a
-		JOIN poli p ON a.poli_id = p.id
-		JOIN dokter d ON a.dokter_id = d.id
-		ORDER BY a.no_antrian ASC
-	`)
+rows, err := database.DB.Query(`
+	SELECT a.id, a.nama_pasien, a.no_antrian,
+	       a.poli_id, a.dokter_id, a.status,
+	       p.nama, d.nama
+	FROM antrian a
+	JOIN poli p ON a.poli_id = p.id
+	JOIN dokter d ON a.dokter_id = d.id
+	WHERE a.tanggal = CURDATE()
+	ORDER BY a.no_antrian ASC
+`)
 	if err != nil {
 		return nil, err
 	}
@@ -53,14 +56,55 @@ func (r *AntrianRepository) GetAll() ([]model.Antrian, error) {
 }
 
 func (r *AntrianRepository) Create(a *model.Antrian) error {
-	_, err := database.DB.Exec(
-		"INSERT INTO antrian (nama_pasien, no_antrian, poli_id, dokter_id) VALUES (?, ?, ?, ?)",
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	today := time.Now().Format("2006-01-02")
+
+
+	var prefix string
+	err = tx.QueryRow(
+		"SELECT prefix FROM poli WHERE id = ?",
+		a.PoliID,
+	).Scan(&prefix)
+	if err != nil {
+		return err
+	}
+
+
+	var lastNumber int
+	err = tx.QueryRow(`
+		SELECT COALESCE(MAX(CAST(SUBSTRING(no_antrian, 2) AS UNSIGNED)), 0)
+		FROM antrian
+		WHERE poli_id = ? AND tanggal = ?
+	`, a.PoliID, today).Scan(&lastNumber)
+	if err != nil {
+		return err
+	}
+
+	nextNumber := lastNumber + 1
+	formatted := fmt.Sprintf("%s%03d", prefix, nextNumber)
+
+	_, err = tx.Exec(`
+		INSERT INTO antrian
+		(nama_pasien, no_antrian, poli_id, dokter_id, status, tanggal)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`,
 		a.NamaPasien,
-		a.NoAntrian,
+		formatted,
 		a.PoliID,
 		a.DokterID,
+		"MENUNGGU",
+		today,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (r *AntrianRepository) Delete(id int) error {

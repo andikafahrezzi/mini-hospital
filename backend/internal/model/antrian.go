@@ -3,7 +3,7 @@ package model
 type Antrian struct {
 	ID         int    `json:"id"`
 	NamaPasien string `json:"nama_pasien"`
-	NoAntrian  int    `json:"no_antrian"`
+	NoAntrian  string `json:"no_antrian"`
 	PoliID     int    `json:"poli_id"`
 	Status	  string  `json:"status"`
 	DokterID   int    `json:"dokter_id"`
