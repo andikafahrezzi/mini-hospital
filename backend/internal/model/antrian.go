@@ -6,6 +6,7 @@ type Antrian struct {
 	NoAntrian  string `json:"no_antrian"`
 	PoliID     int    `json:"poli_id"`
 	Status	  string  `json:"status"`
+	Tanggal    string  `json:"tanggal"`
 	DokterID   int    `json:"dokter_id"`
 	NamaPoli   string `json:"nama_poli"`
 	NamaDokter string `json:"nama_dokter"`
